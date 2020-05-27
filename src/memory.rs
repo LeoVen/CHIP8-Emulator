@@ -1,5 +1,3 @@
-use crate::sprites;
-
 pub struct Memory {
     // actual memory
     pub mem: [u8; 4096],
@@ -22,9 +20,10 @@ impl Memory {
     }
 
     pub fn read_byte(&mut self, address: u16) -> u8 {
-        todo!()
+        self.mem[address as usize]
     }
 
+    #[allow(dead_code)]
     pub fn dump(&self) {
         for (i, b) in self.mem.iter().enumerate() {
             if i % 8 == 0 {

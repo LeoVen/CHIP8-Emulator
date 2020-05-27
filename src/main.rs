@@ -1,10 +1,15 @@
+use crate::chip8::Chip8;
 use std::fs::File;
 use std::io::Read;
-use crate::cpu::Cpu;
 
+mod chip8;
 mod cpu;
 mod memory;
+mod opcode;
 mod sprites;
+
+#[cfg(test)]
+mod tests;
 
 fn main() {
     let file_name = "data/INVADERS";
@@ -13,7 +18,7 @@ fn main() {
         Err(_) => {
             eprintln!("Could not open file {}", file_name);
             return;
-        },
+        }
     };
     let mut data = Vec::<u8>::new();
     match file.read_to_end(&mut data) {
@@ -21,11 +26,14 @@ fn main() {
         Err(_) => {
             eprintln!("Could not read file {}", file_name);
             return;
-        },
+        }
     }
 
-    let mut cpu = Cpu::new();
-    cpu.load_rom(&data);
+    let mut chip8 = Chip8::new();
 
-    cpu.dump();
+    chip8.load_rom(&data);
+    chip8.cycle();
+    chip8.cycle();
+
+    // chip8.dump();
 }
