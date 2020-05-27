@@ -7,6 +7,7 @@ mod cpu;
 mod memory;
 mod opcode;
 mod sprites;
+mod stack;
 
 #[cfg(test)]
 mod tests;
@@ -32,8 +33,10 @@ fn main() {
     let mut chip8 = Chip8::new();
 
     chip8.load_rom(&data);
-    chip8.cycle();
-    chip8.cycle();
+
+    for _ in 0..10 {
+        chip8.cycle();
+    }
 
     // chip8.dump();
 }

@@ -1,5 +1,6 @@
 use crate::cpu::Cpu;
 use crate::memory::Memory;
+use crate::stack::Stack;
 
 pub struct Chip8 {
     // memory
@@ -7,9 +8,7 @@ pub struct Chip8 {
     // CPU
     cpu: Cpu,
     // stack
-    pub stack: [u16; 16],
-    // stack pointer
-    pub sp: u16,
+    pub stack: Stack,
     // delay timer
     delay_timer: i32,
     // sound timer
@@ -22,8 +21,7 @@ impl Chip8 {
         Self {
             mem: Memory::new(),
             cpu: Cpu::new(),
-            stack: [0; 16],
-            sp: 0,
+            stack: Stack::new(),
             delay_timer: 0,
             sound_timer: 0,
         }
@@ -38,7 +36,7 @@ impl Chip8 {
 
     /// Runs an instruction for each cycle
     pub fn cycle(&mut self) {
-        self.cpu.run_instruction(&mut self.mem);
+        self.cpu.run_instruction(&mut self.mem, &mut self.stack);
     }
 
     #[allow(dead_code)]

@@ -53,12 +53,6 @@ impl Opcode {
     }
 }
 
-impl cmp::PartialEq for Opcode {
-    fn eq(&self, other: &Opcode) -> bool {
-        self.nib == other.nib
-    }
-}
-
 impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
