@@ -34,7 +34,7 @@ fn main() {
 
     chip8.load_rom(&data);
 
-    for _ in 0..10 {
+    for _ in 0..100 {
         chip8.cycle();
     }
 

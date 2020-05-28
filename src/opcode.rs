@@ -1,7 +1,7 @@
-use std::cmp;
 use std::fmt;
 use std::ops;
 
+#[allow(dead_code)]
 pub enum Nibble {
     A = 0,
     B = 1,
@@ -16,9 +16,9 @@ pub enum Nibble {
 }
 
 pub struct Opcode {
-    // nibbles of an opcode
+    /// Nibbles of an opcode
     nib: [u16; 4],
-    // the opcode itself
+    /// The opcode itself
     opcode: u16,
 }
 
@@ -35,6 +35,7 @@ impl Opcode {
         }
     }
 
+    /// Gets one of the possible combinations of Nibble
     pub fn get(&self, nib: Nibble) -> u16 {
         match nib {
             Nibble::A => self[Nibble::A] << 12,
