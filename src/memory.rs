@@ -25,6 +25,12 @@ impl Memory {
         self.mem[address as usize]
     }
 
+    /// Gets a slice from memory starting at i up to i + n
+    /// Used by 0xD (draw) instruction
+    pub fn get_slice(&self, i: u16, n: u16) -> &[u8] {
+        &self.mem[i as usize..(i + n) as usize]
+    }
+
     #[allow(dead_code)]
     pub fn dump(&self) {
         for (i, b) in self.mem.iter().enumerate() {

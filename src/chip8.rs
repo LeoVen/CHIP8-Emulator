@@ -1,4 +1,5 @@
 use crate::cpu::Cpu;
+use crate::display::Display;
 use crate::memory::Memory;
 use crate::opcode::{Nibble, Opcode};
 use crate::stack::Stack;
@@ -10,6 +11,8 @@ pub struct Chip8 {
     pub cpu: Cpu,
     /// Call stack
     pub stack: Stack,
+    /// The emulator's display
+    pub display: Display,
     /// Delay timer
     delay_timer: i32,
     /// Sound timer
@@ -23,8 +26,22 @@ impl Chip8 {
             mem: Memory::new(),
             cpu: Cpu::new(),
             stack: Stack::new(),
+            display: Display::new(),
             delay_timer: 0,
             sound_timer: 0,
+        }
+    }
+
+    pub fn run(&mut self) {
+        // todo add loop based on screen
+        let max = 5000;
+        let mut i = 0;
+        while self.display.is_open() {
+            self.cycle();
+            i += 1;
+            if i == max {
+                break;
+            }
         }
     }
 
@@ -50,25 +67,36 @@ impl Chip8 {
                     0xE0 => {
                         // 0x00E0 -> Clear display
                         println!("{:#X}\tCLS", self.cpu.pc);
-                        // todo
+                        self.display.clear();
                     }
                     0xEE => {
                         // 0x00EE -> Return from subroutine
                         println!("{:#X}\tRET", self.cpu.pc);
                         self.cpu.pc = self.stack.pop();
                     }
-                    _ => eprintln!("Unknown opcode for 0x0 at {} -> {}", self.cpu.pc, opcode),
+                    _ => eprintln!(
+                        "Unknown opcode for 0x0 at {} -> {}",
+                        self.cpu.pc, opcode
+                    ),
                 }
                 self.cpu.next_instruction();
             }
             0x1 => {
                 // 0x1NNN -> Jump to address NNN
-                println!("{:#X}:\tJMP\t{:#X}", self.cpu.pc, opcode.get(Nibble::BCD));
+                println!(
+                    "{:#X}:\tJMP\t{:#X}",
+                    self.cpu.pc,
+                    opcode.get(Nibble::BCD)
+                );
                 self.cpu.pc = opcode.get(Nibble::BCD);
             }
             0x2 => {
                 // 0x2NNN -> Call subroutine at NNN
-                println!("{:#X}:\tCALL\t{:#X}", self.cpu.pc, opcode.get(Nibble::BCD));
+                println!(
+                    "{:#X}:\tCALL\t{:#X}",
+                    self.cpu.pc,
+                    opcode.get(Nibble::BCD)
+                );
                 self.cpu.next_instruction();
                 self.stack.push(self.cpu.pc);
                 self.cpu.pc = opcode.get(Nibble::BCD);
@@ -81,7 +109,9 @@ impl Chip8 {
                     opcode[Nibble::B],
                     opcode.get(Nibble::CD)
                 );
-                if self.cpu.v[opcode[Nibble::B] as usize] as u16 == opcode.get(Nibble::CD) {
+                if self.cpu.v[opcode[Nibble::B] as usize] as u16
+                    == opcode.get(Nibble::CD)
+                {
                     self.cpu.skip_instruction();
                 } else {
                     self.cpu.next_instruction();
@@ -95,7 +125,9 @@ impl Chip8 {
                     opcode[Nibble::B],
                     opcode.get(Nibble::CD)
                 );
-                if self.cpu.v[opcode[Nibble::B] as usize] as u16 != opcode.get(Nibble::CD) {
+                if self.cpu.v[opcode[Nibble::B] as usize] as u16
+                    != opcode.get(Nibble::CD)
+                {
                     self.cpu.skip_instruction();
                 } else {
                     self.cpu.next_instruction();
@@ -121,8 +153,10 @@ impl Chip8 {
                     opcode[Nibble::B],
                     opcode.get(Nibble::CD)
                 );
-                self.cpu
-                    .write_register(opcode[Nibble::B], opcode.get(Nibble::CD) as u8);
+                self.cpu.write_register(
+                    opcode[Nibble::B],
+                    opcode.get(Nibble::CD) as u8,
+                );
                 self.cpu.next_instruction();
             }
             0x7 => {
@@ -133,8 +167,11 @@ impl Chip8 {
                     opcode[Nibble::B],
                     opcode.get(Nibble::CD)
                 );
-                // todo replace by self.cup.write_instruction
-                self.cpu.v[opcode[Nibble::B] as usize] += opcode.get(Nibble::CD) as u8;
+                self.cpu.write_register(
+                    opcode[Nibble::B],
+                    (self.cpu.v[opcode[Nibble::B] as usize] as u16
+                        + opcode.get(Nibble::CD)) as u8,
+                );
                 self.cpu.next_instruction();
             }
             0x8 => {
@@ -186,7 +223,10 @@ impl Chip8 {
                     }
                     0x7 => {
                         // 0x8XY7 -> VX = VY - VX
-                        println!("{:#X}:\tSUBN\tV{},\tV{}", self.cpu.pc, vx, vy);
+                        println!(
+                            "{:#X}:\tSUBN\tV{},\tV{}",
+                            self.cpu.pc, vx, vy
+                        );
                         let sub: i8 = vy_value as i8 - vx_value as i8;
                         self.cpu.write_register(vx, sub as u8);
                         self.cpu.set_borrow(vy_value < vx_value); // todo don't use this anymore
@@ -197,12 +237,34 @@ impl Chip8 {
                         self.cpu.write_register(vx, vx_value << 1);
                         self.cpu.write_register(0xF, vx_value >> 7);
                     }
-                    _ => eprintln!("Unknown opcode for 0x8 at {} -> {}", self.cpu.pc, opcode),
+                    _ => eprintln!(
+                        "Unknown opcode for 0x8 at {} -> {}",
+                        self.cpu.pc, opcode
+                    ),
                 }
+                self.cpu.next_instruction();
             }
             0x9 => {
                 // 0x9XY0 -> Skip next instruction if VX != VY
+                // todo
                 todo!();
+            }
+            0xD => {
+                // 0xDXYN -> Draw sprite at (VX, VY) with width 8 and height N
+                println!(
+                    "{:#X}:\tDRW\tV{},\tV{},\t{:#X}",
+                    self.cpu.pc,
+                    opcode[Nibble::B],
+                    opcode[Nibble::C],
+                    opcode[Nibble::D],
+                );
+                self.cpu.v[0xF] = self.display.display(
+                    opcode[Nibble::B],
+                    opcode[Nibble::C],
+                    opcode[Nibble::D],
+                    self.mem.get_slice(self.cpu.i, opcode[Nibble::D]),
+                ) as u8;
+                self.cpu.next_instruction();
             }
             0xA => {
                 // 0xANNN -> Set I to NNN

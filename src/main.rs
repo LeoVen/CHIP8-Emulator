@@ -4,6 +4,7 @@ use std::io::Read;
 
 mod chip8;
 mod cpu;
+mod display;
 mod memory;
 mod opcode;
 mod sprites;
@@ -13,7 +14,7 @@ mod stack;
 mod tests;
 
 fn main() {
-    let file_name = "data/INVADERS";
+    let file_name = "data/TETRIS";
     let mut file = match File::open(file_name) {
         Ok(file) => file,
         Err(_) => {
@@ -33,10 +34,7 @@ fn main() {
     let mut chip8 = Chip8::new();
 
     chip8.load_rom(&data);
-
-    for _ in 0..100 {
-        chip8.cycle();
-    }
+    chip8.run();
 
     // chip8.dump();
 }
