@@ -1,3 +1,5 @@
+use crate::sprites::SPRITES;
+
 pub struct Memory {
     /// Actual memory
     pub mem: [u8; 4096],
@@ -9,10 +11,21 @@ pub struct Memory {
 
 impl Memory {
     pub fn new() -> Self {
-        Memory {
+        let mut memory = Memory {
             mem: [0; 4096],
             offset: 0x200,
+        };
+
+        // Initialize memory at 0x0000 with pre-defined sprites
+        let mut i = 0;
+        for sprite in &SPRITES {
+            for byte in sprite {
+                memory.mem[i] = *byte;
+                i += 1;
+            }
         }
+
+        memory
     }
 
     /// Writes a byte to a memory region

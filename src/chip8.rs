@@ -1,10 +1,12 @@
+use rand::prelude::{thread_rng, Rng, ThreadRng};
+
 use crate::cpu::Cpu;
 use crate::display::Display;
 use crate::memory::Memory;
 use crate::opcode::{Nibble, Opcode};
 use crate::stack::Stack;
 
-pub struct Chip8 {
+pub struct Chip8<D: Display + Default> {
     /// Memory
     pub mem: Memory,
     /// CPU
@@ -12,28 +14,34 @@ pub struct Chip8 {
     /// Call stack
     pub stack: Stack,
     /// The emulator's display
-    pub display: Display,
+    pub display: D,
+    /// A random number generator provided by Rust
+    pub rng: ThreadRng,
     /// Delay timer
     delay_timer: i32,
     /// Sound timer
     sound_timer: i32,
 }
 
-impl Chip8 {
+impl<D> Chip8<D>
+where
+    D: Display + Default,
+{
     /// Creates a new Chip8
     pub fn new() -> Self {
         Self {
             mem: Memory::new(),
             cpu: Cpu::new(),
             stack: Stack::new(),
-            display: Display::new(),
+            display: D::default(),
+            rng: thread_rng(),
             delay_timer: 0,
             sound_timer: 0,
         }
     }
 
     pub fn run(&mut self) {
-        // todo add loop based on screen
+        // todo add loop based on display
         let max = 5000;
         let mut i = 0;
         while self.display.is_open() {
@@ -74,17 +82,20 @@ impl Chip8 {
                         println!("{:#X}\tRET", self.cpu.pc);
                         self.cpu.pc = self.stack.pop();
                     }
-                    _ => eprintln!(
-                        "Unknown opcode for 0x0 at {} -> {}",
-                        self.cpu.pc, opcode
-                    ),
+                    _ => match opcode.get(Nibble::ABCD) {
+                        0x0000 => println!("{:#X}:\tNOP", self.cpu.pc),
+                        _ => eprintln!(
+                            "Unknown opcode for 0x0 at {} -> {}",
+                            self.cpu.pc, opcode
+                        ),
+                    },
                 }
                 self.cpu.next_instruction();
             }
             0x1 => {
                 // 0x1NNN -> Jump to address NNN
                 println!(
-                    "{:#X}:\tJMP\t{:#X}",
+                    "{:#X}:\tJP\t{:#X}",
                     self.cpu.pc,
                     opcode.get(Nibble::BCD)
                 );
@@ -142,8 +153,13 @@ impl Chip8 {
                     opcode[Nibble::B],
                     opcode[Nibble::C]
                 );
-                // todo
-                self.cpu.next_instruction();
+                if self.cpu.v[opcode[Nibble::B] as usize]
+                    == self.cpu.v[opcode[Nibble::C] as usize]
+                {
+                    self.cpu.skip_instruction();
+                } else {
+                    self.cpu.next_instruction();
+                }
             }
             0x6 => {
                 // 0x6XNN -> VX = NN
@@ -206,14 +222,15 @@ impl Chip8 {
                         println!("{:#X}:\tADD\tV{},\tV{}", self.cpu.pc, vx, vy);
                         let sum: u16 = vx_value as u16 + vy_value as u16;
                         self.cpu.write_register(vx, sum as u8);
-                        self.cpu.set_carry(sum > 0xFF); // todo don't use this anymore
+                        self.cpu.v[0xF] = (sum > 0xFF) as u8;
                     }
                     0x5 => {
-                        // 0x8XY5 -> VX -= VY
+                        // 0x8XY5 -> VX = VX - VY
                         println!("{:#X}:\tSUB\tV{},\tV{}", self.cpu.pc, vx, vy);
                         let sub: i8 = vx_value as i8 - vy_value as i8;
                         self.cpu.write_register(vx, sub as u8);
-                        self.cpu.set_borrow(vx_value < vy_value); // todo don't use this anymore
+                        self.cpu
+                            .write_register(0xF, (vx_value < vy_value) as u8);
                     }
                     0x6 => {
                         // 0x8XY6 -> VX >>= 1
@@ -229,7 +246,8 @@ impl Chip8 {
                         );
                         let sub: i8 = vy_value as i8 - vx_value as i8;
                         self.cpu.write_register(vx, sub as u8);
-                        self.cpu.set_borrow(vy_value < vx_value); // todo don't use this anymore
+                        self.cpu
+                            .write_register(0xF, (vy_value < vx_value) as u8);
                     }
                     0xE => {
                         // 0x8XYE -> VX <<= 1
@@ -246,8 +264,50 @@ impl Chip8 {
             }
             0x9 => {
                 // 0x9XY0 -> Skip next instruction if VX != VY
-                // todo
-                todo!();
+                // Here, 0x000X is ignored
+                println!(
+                    "{:#X}:\tSNE\tV{},\tV{}",
+                    self.cpu.pc,
+                    opcode[Nibble::B],
+                    opcode[Nibble::C]
+                );
+                if self.cpu.v[opcode[Nibble::B] as usize]
+                    != self.cpu.v[opcode[Nibble::C] as usize]
+                {
+                    self.cpu.skip_instruction();
+                } else {
+                    self.cpu.next_instruction();
+                }
+            }
+            0xA => {
+                // 0xANNN -> Set I to NNN
+                println!(
+                    "{:#X}:\tLD\tI,\t{:#X}",
+                    self.cpu.pc,
+                    opcode.get(Nibble::BCD)
+                );
+                self.cpu.i = opcode.get(Nibble::BCD);
+                self.cpu.next_instruction();
+            }
+            0xB => {
+                // 0xBNNN -> Jump to location V0 + NNN
+                println!(
+                    "{:#X}:\tJP\tV0,\t{:#X}",
+                    self.cpu.pc,
+                    opcode.get(Nibble::BCD)
+                );
+                self.cpu.pc = self.cpu.v[0x0] as u16 + opcode[Nibble::BCD];
+            }
+            0xC => {
+                // 0xCXKK -> VX = random() & KK
+                println!(
+                    "{:#X}:\tRND\tV{},\t{:#X}",
+                    self.cpu.pc,
+                    opcode[Nibble::B],
+                    opcode.get(Nibble::CD)
+                );
+                self.cpu.v[Nibble::B as usize] = self.rng.gen::<u8>();
+                self.cpu.next_instruction();
             }
             0xD => {
                 // 0xDXYN -> Draw sprite at (VX, VY) with width 8 and height N
@@ -266,17 +326,17 @@ impl Chip8 {
                 ) as u8;
                 self.cpu.next_instruction();
             }
-            0xA => {
-                // 0xANNN -> Set I to NNN
-                println!(
-                    "{:#X}:\tLD\tI,\t{:#X}",
-                    self.cpu.pc,
-                    opcode.get(Nibble::BCD)
-                );
-                self.cpu.i = opcode.get(Nibble::BCD);
+            0xF => {
+                // [07, 0A, 15, 18, 1E, 29, 33, 55, 65]
+                match opcode.get(Nibble::CD) {
+                    // todo
+                    _ => eprintln!(
+                        "Unknown opcode for 0xF at {} -> {}",
+                        self.cpu.pc, opcode
+                    ),
+                }
                 self.cpu.next_instruction();
             }
-            // todo
             _ => {
                 eprintln!("Unknown opcode at {:#X} -> {}", self.cpu.pc, opcode);
                 self.cpu.next_instruction();

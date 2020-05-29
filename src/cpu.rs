@@ -32,16 +32,6 @@ impl Cpu {
         self.v[v as usize] = val;
     }
 
-    /// The register 0xF is set when there is a carry during +
-    pub fn set_carry(&mut self, val: bool) {
-        self.v[0xF] = val as u8;
-    }
-
-    /// The register 0xF is set to 0 when there is a borrow
-    pub fn set_borrow(&mut self, val: bool) {
-        self.v[0xF] = val as u8;
-    }
-
     #[allow(dead_code)]
     pub fn dump(&self) {
         println!(
