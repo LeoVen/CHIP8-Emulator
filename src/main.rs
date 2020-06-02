@@ -1,8 +1,8 @@
 use std::fs::File;
 use std::io::Read;
 
-use crate::display::Chip8Display;
 use crate::chip8::Chip8;
+use crate::display::{Chip8Display, TextDisplay};
 
 mod chip8;
 mod cpu;
@@ -33,7 +33,7 @@ fn main() {
         }
     }
 
-    let mut chip8 = Chip8::<Chip8Display>::new();
+    let mut chip8 = Chip8::<Chip8Display>::new().no_display().debug();
 
     chip8.load_rom(&data);
     chip8.run();

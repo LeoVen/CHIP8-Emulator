@@ -46,15 +46,9 @@ impl Opcode {
             Nibble::BC => (self[Nibble::B] << 8) | (self[Nibble::C] << 4),
             Nibble::CD => (self[Nibble::C] << 4) | self[Nibble::D],
             Nibble::ABC => {
-                (self[Nibble::A] << 12)
-                    | (self[Nibble::B] << 8)
-                    | (self[Nibble::C] << 4)
+                (self[Nibble::A] << 12) | (self[Nibble::B] << 8) | (self[Nibble::C] << 4)
             }
-            Nibble::BCD => {
-                (self[Nibble::B] << 8)
-                    | (self[Nibble::C] << 4)
-                    | self[Nibble::D]
-            }
+            Nibble::BCD => (self[Nibble::B] << 8) | (self[Nibble::C] << 4) | self[Nibble::D],
             Nibble::ABCD => self.opcode,
         }
     }
@@ -81,12 +75,8 @@ impl ops::Index<Nibble> for Opcode {
 
     fn index(&self, nib: Nibble) -> &Self::Output {
         match nib {
-            Nibble::A | Nibble::B | Nibble::C | Nibble::D => {
-                &self.nib[nib as usize]
-            }
-            _ => panic!(
-                "Can't index Opcode with a Nibble that is not A, B, C or D"
-            ),
+            Nibble::A | Nibble::B | Nibble::C | Nibble::D => &self.nib[nib as usize],
+            _ => panic!("Can't index Opcode with a Nibble that is not A, B, C or D"),
         }
     }
 }

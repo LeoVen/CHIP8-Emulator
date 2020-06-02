@@ -39,7 +39,6 @@ impl Memory {
     }
 
     /// Gets a slice from memory starting at i up to i + n
-    /// Used by 0xD (draw) instruction
     pub fn get_slice(&self, i: u16, n: u16) -> &[u8] {
         &self.mem[i as usize..(i + n) as usize]
     }
