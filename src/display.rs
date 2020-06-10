@@ -88,7 +88,35 @@ impl Display for Chip8Display {
 
     fn update(&mut self) {
         if self.on {
-            // todo
+            // todo FIXME
+            let &mut Self {
+                ref mut screen,
+                ref buffer,
+                ..
+            } = self;
+            if let Some(ref e) = self.event {
+                screen.draw_2d(e, |c, g, _| {
+                    clear([1.0, 1.0, 1.0, 1.0], g);
+                    for i in 0..buffer.len() {
+                        for j in 0..buffer[0].len() {
+                            if i != 0 && j != 0 {
+                                let scale = SCALE as f64;
+                                rectangle(
+                                    [0.0, 0.0, 0.0, 1.0],
+                                    [
+                                        i as f64 * scale,
+                                        j as f64 * scale,
+                                        SCALE as f64,
+                                        SCALE as f64,
+                                    ],
+                                    c.transform,
+                                    g,
+                                );
+                            }
+                        }
+                    }
+                });
+            }
         }
     }
 
@@ -130,7 +158,8 @@ impl TextDisplay {
         let mut result: [char; WIDTH * HEIGHT] = [' '; WIDTH * HEIGHT];
         for i in 0..WIDTH {
             for j in 0..HEIGHT {
-                result[i + j * WIDTH] = match self.get_pixel(i as u16, j as u16) {
+                result[i + j * WIDTH] = match self.get_pixel(i as u16, j as u16)
+                {
                     0x0 => ' ',
                     _ => 'X',
                 }

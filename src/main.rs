@@ -33,7 +33,7 @@ fn main() {
         }
     }
 
-    let mut chip8 = Chip8::<Chip8Display>::new().no_display().debug();
+    let mut chip8 = Chip8::<Chip8Display>::new().debug();
 
     chip8.load_rom(&data);
     chip8.run();

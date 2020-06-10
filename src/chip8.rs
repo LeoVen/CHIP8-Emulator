@@ -18,9 +18,9 @@ pub struct Chip8<D: Display + Default> {
     /// A random number generator provided by Rust
     pub rng: ThreadRng,
     /// Delay timer
-    delay_timer: i32,
+    delay_timer: u8,
     /// Sound timer
-    sound_timer: i32,
+    sound_timer: u8,
     /// Useful debugging information
     debug: bool,
 }
@@ -54,7 +54,7 @@ where
     }
 
     pub fn run(&mut self) {
-        // todo add loop based on display
+        // todo remove max
         let max = 5000;
         let mut i = 0;
         while self.display.is_open() {
@@ -113,7 +113,10 @@ where
                         }
                         _ => {
                             if self.debug {
-                                eprintln!("Unknown opcode for 0x0 at {} -> {}", self.cpu.pc, opcode)
+                                eprintln!(
+                                    "Unknown opcode for 0x0 at {} -> {}",
+                                    self.cpu.pc, opcode
+                                )
                             }
                         }
                     },
@@ -123,14 +126,22 @@ where
             0x1 => {
                 // 0x1NNN -> Jump to address NNN
                 if self.debug {
-                    println!("{:#X}:\tJP\t{:#X}", self.cpu.pc, opcode.get(Nibble::BCD));
+                    println!(
+                        "{:#X}:\tJP\t{:#X}",
+                        self.cpu.pc,
+                        opcode.get(Nibble::BCD)
+                    );
                 }
                 self.cpu.pc = opcode.get(Nibble::BCD);
             }
             0x2 => {
                 // 0x2NNN -> Call subroutine at NNN
                 if self.debug {
-                    println!("{:#X}:\tCALL\t{:#X}", self.cpu.pc, opcode.get(Nibble::BCD));
+                    println!(
+                        "{:#X}:\tCALL\t{:#X}",
+                        self.cpu.pc,
+                        opcode.get(Nibble::BCD)
+                    );
                 }
                 self.cpu.next_instruction();
                 self.stack.push(self.cpu.pc);
@@ -146,7 +157,9 @@ where
                         opcode.get(Nibble::CD)
                     );
                 }
-                if self.cpu.v[opcode[Nibble::B] as usize] as u16 == opcode.get(Nibble::CD) {
+                if self.cpu.v[opcode[Nibble::B] as usize] as u16
+                    == opcode.get(Nibble::CD)
+                {
                     self.cpu.skip_instruction();
                 } else {
                     self.cpu.next_instruction();
@@ -162,7 +175,9 @@ where
                         opcode.get(Nibble::CD)
                     );
                 }
-                if self.cpu.v[opcode[Nibble::B] as usize] as u16 != opcode.get(Nibble::CD) {
+                if self.cpu.v[opcode[Nibble::B] as usize] as u16
+                    != opcode.get(Nibble::CD)
+                {
                     self.cpu.skip_instruction();
                 } else {
                     self.cpu.next_instruction();
@@ -179,7 +194,8 @@ where
                         opcode[Nibble::C]
                     );
                 }
-                if self.cpu.v[opcode[Nibble::B] as usize] == self.cpu.v[opcode[Nibble::C] as usize]
+                if self.cpu.v[opcode[Nibble::B] as usize]
+                    == self.cpu.v[opcode[Nibble::C] as usize]
                 {
                     self.cpu.skip_instruction();
                 } else {
@@ -196,8 +212,10 @@ where
                         opcode.get(Nibble::CD)
                     );
                 }
-                self.cpu
-                    .write_register(opcode[Nibble::B], opcode.get(Nibble::CD) as u8);
+                self.cpu.write_register(
+                    opcode[Nibble::B],
+                    opcode.get(Nibble::CD) as u8,
+                );
                 self.cpu.next_instruction();
             }
             0x7 => {
@@ -212,7 +230,8 @@ where
                 }
                 self.cpu.write_register(
                     opcode[Nibble::B],
-                    (self.cpu.v[opcode[Nibble::B] as usize] as u16 + opcode.get(Nibble::CD)) as u8,
+                    (self.cpu.v[opcode[Nibble::B] as usize] as u16
+                        + opcode.get(Nibble::CD)) as u8,
                 );
                 self.cpu.next_instruction();
             }
@@ -226,35 +245,50 @@ where
                     0x0 => {
                         // 0x8XY0 -> VX = VY
                         if self.debug {
-                            println!("{:#X}:\tLD\tV{},\tV{}", self.cpu.pc, vx, vy);
+                            println!(
+                                "{:#X}:\tLD\tV{},\tV{}",
+                                self.cpu.pc, vx, vy
+                            );
                         }
                         self.cpu.write_register(vx, vy_value);
                     }
                     0x1 => {
                         // 0x8XY1 -> VX = VX | VY
                         if self.debug {
-                            println!("{:#X}:\tOR\tV{},\tV{}", self.cpu.pc, vx, vy);
+                            println!(
+                                "{:#X}:\tOR\tV{},\tV{}",
+                                self.cpu.pc, vx, vy
+                            );
                         }
                         self.cpu.write_register(vx, vx_value | vy_value);
                     }
                     0x2 => {
                         // 0x8XY2 -> VX = VX & VY
                         if self.debug {
-                            println!("{:#X}:\tAND\tV{},\tV{}", self.cpu.pc, vx, vy);
+                            println!(
+                                "{:#X}:\tAND\tV{},\tV{}",
+                                self.cpu.pc, vx, vy
+                            );
                         }
                         self.cpu.write_register(vx, vx_value & vy_value);
                     }
                     0x3 => {
                         // 0x8XY3 -> VX = VX ^ VY
                         if self.debug {
-                            println!("{:#X}:\tXOR\tV{},\tV{}", self.cpu.pc, vx, vy);
+                            println!(
+                                "{:#X}:\tXOR\tV{},\tV{}",
+                                self.cpu.pc, vx, vy
+                            );
                         }
                         self.cpu.write_register(vx, vx_value ^ vy_value);
                     }
                     0x4 => {
                         // 0x8XY4 -> VX += VY
                         if self.debug {
-                            println!("{:#X}:\tADD\tV{},\tV{}", self.cpu.pc, vx, vy);
+                            println!(
+                                "{:#X}:\tADD\tV{},\tV{}",
+                                self.cpu.pc, vx, vy
+                            );
                         }
                         let sum: u16 = vx_value as u16 + vy_value as u16;
                         self.cpu.write_register(vx, sum as u8);
@@ -263,16 +297,23 @@ where
                     0x5 => {
                         // 0x8XY5 -> VX = VX - VY
                         if self.debug {
-                            println!("{:#X}:\tSUB\tV{},\tV{}", self.cpu.pc, vx, vy);
+                            println!(
+                                "{:#X}:\tSUB\tV{},\tV{}",
+                                self.cpu.pc, vx, vy
+                            );
                         }
                         let sub: i8 = vx_value as i8 - vy_value as i8;
                         self.cpu.write_register(vx, sub as u8);
-                        self.cpu.write_register(0xF, (vx_value < vy_value) as u8);
+                        self.cpu
+                            .write_register(0xF, (vx_value < vy_value) as u8);
                     }
                     0x6 => {
                         // 0x8XY6 -> VX >>= 1
                         if self.debug {
-                            println!("{:#X}:\tSHR\tV{},\tV{}", self.cpu.pc, vx, vy);
+                            println!(
+                                "{:#X}:\tSHR\tV{},\tV{}",
+                                self.cpu.pc, vx, vy
+                            );
                         }
                         self.cpu.write_register(vx, vx_value >> 1);
                         self.cpu.write_register(0xF, vx_value & 0x1);
@@ -280,23 +321,33 @@ where
                     0x7 => {
                         // 0x8XY7 -> VX = VY - VX
                         if self.debug {
-                            println!("{:#X}:\tSUBN\tV{},\tV{}", self.cpu.pc, vx, vy);
+                            println!(
+                                "{:#X}:\tSUBN\tV{},\tV{}",
+                                self.cpu.pc, vx, vy
+                            );
                         }
                         let sub: i8 = vy_value as i8 - vx_value as i8;
                         self.cpu.write_register(vx, sub as u8);
-                        self.cpu.write_register(0xF, (vy_value < vx_value) as u8);
+                        self.cpu
+                            .write_register(0xF, (vy_value < vx_value) as u8);
                     }
                     0xE => {
                         // 0x8XYE -> VX <<= 1
                         if self.debug {
-                            println!("{:#X}:\tSHL\tV{},\tV{}", self.cpu.pc, vx, vy);
+                            println!(
+                                "{:#X}:\tSHL\tV{},\tV{}",
+                                self.cpu.pc, vx, vy
+                            );
                         }
                         self.cpu.write_register(vx, vx_value << 1);
                         self.cpu.write_register(0xF, vx_value >> 7);
                     }
                     _ => {
                         if self.debug {
-                            eprintln!("Unknown opcode for 0x8 at {} -> {}", self.cpu.pc, opcode);
+                            eprintln!(
+                                "Unknown opcode for 0x8 at {} -> {}",
+                                self.cpu.pc, opcode
+                            );
                         }
                     }
                 }
@@ -313,7 +364,8 @@ where
                         opcode[Nibble::C]
                     );
                 }
-                if self.cpu.v[opcode[Nibble::B] as usize] != self.cpu.v[opcode[Nibble::C] as usize]
+                if self.cpu.v[opcode[Nibble::B] as usize]
+                    != self.cpu.v[opcode[Nibble::C] as usize]
                 {
                     self.cpu.skip_instruction();
                 } else {
@@ -379,11 +431,96 @@ where
             // todo 0xE
             0xF => {
                 // [07, 0A, 15, 18, 1E, 29, 33, 55, 65]
+                let vx = opcode[Nibble::B];
                 match opcode.get(Nibble::CD) {
-                    // todo
+                    0x07 => {
+                        // Set Vx = delay timer value
+                        if self.debug {
+                            println!("{:#X}:\tLD\tV{},\tDT", self.cpu.pc, vx);
+                        }
+                        self.cpu.write_register(vx, self.delay_timer);
+                    }
+                    0x0A => {
+                        // 0xFX0A -> Wait for key press, then store key in VX
+                        if self.debug {
+                            println!("{:#X}:\tLD\tV{},\tK", self.cpu.pc, vx);
+                            // todo wait for key press and store key into vx
+                            // todo this needs to be locked here
+                        }
+                    }
+                    0x15 => {
+                        // 0xFX15 -> Set delay timer = Vx
+                        if self.debug {
+                            println!("{:#X}:\tLD\tDT,\tV{}", self.cpu.pc, vx);
+                        }
+                        self.delay_timer = self.cpu.v[vx as usize];
+                    }
+                    0x18 => {
+                        // 0xFX18 -> Set sound timer = VX
+                        if self.debug {
+                            println!("{:#X}:\tLD\tST,\tV{}", self.cpu.pc, vx);
+                        }
+                    }
+                    0x1E => {
+                        // 0xFX1E -> I = I + Vx
+                        // VF is set to 1 if I + VX > 0xFFF
+                        if self.debug {
+                            println!("{:#X}:\tADD\tI,\tV{}", self.cpu.pc, vx);
+                        }
+                        self.cpu.i += self.cpu.v[vx as usize] as u16;
+                        self.cpu.write_register(
+                            0xF,
+                            (self.cpu.i + vx > 0xFFF) as u8,
+                        );
+                    }
+                    0x29 => {
+                        // 0xFX29 -> Set I to sprite location for the character in VX
+                        if self.debug {
+                            println!("{:#X}:\tLD\tF\tV{}", self.cpu.pc, vx);
+                        }
+                        self.cpu.i = self.cpu.v[vx as usize] as u16 * 0x5;
+                    }
+                    0x33 => {
+                        // 0xFX33 -> Store BCD repr of VX in memory locations I..I + 2
+                        if self.debug {
+                            println!("{:#X}:\tLD\tB\tV{}", self.cpu.pc, vx);
+                        }
+                        let vx_value = self.cpu.v[vx as usize];
+                        self.mem.write_byte(self.cpu.i, vx_value / 100);
+                        self.mem
+                            .write_byte(self.cpu.i + 1, (vx_value / 10) % 10);
+                        self.mem.write_byte(self.cpu.i + 2, vx_value % 10);
+                    }
+                    0x55 => {
+                        // 0xFX55 -> Store V0 through VX starting at memory location I
+                        if self.debug {
+                            println!("{:#X}:\tLD\t[I]\tV{}", self.cpu.pc, vx);
+                        }
+                        for i in 0..=vx {
+                            self.mem.write_byte(
+                                self.cpu.i + i,
+                                self.cpu.v[i as usize],
+                            );
+                        }
+                        self.cpu.i += vx + 1;
+                    }
+                    0x65 => {
+                        // 0xFX65 -> Store values at memory location I from V0 through VX
+                        if self.debug {
+                            println!("{:#X}:\tLD\tV{}\t[I]", self.cpu.pc, vx);
+                        }
+                        for i in 0..=vx {
+                            self.cpu.v[i as usize] =
+                                self.mem.read_byte(self.cpu.i + i);
+                        }
+                        self.cpu.i += vx + 1;
+                    }
                     _ => {
                         if self.debug {
-                            eprintln!("Unknown opcode for 0xF at {} -> {}", self.cpu.pc, opcode)
+                            eprintln!(
+                                "Unknown opcode for 0xF at {} -> {}",
+                                self.cpu.pc, opcode
+                            )
                         }
                     }
                 }
@@ -391,10 +528,21 @@ where
             }
             _ => {
                 if self.debug {
-                    eprintln!("Unknown opcode at {:#X} -> {}", self.cpu.pc, opcode);
+                    eprintln!(
+                        "Unknown opcode at {:#X} -> {}",
+                        self.cpu.pc, opcode
+                    );
                 }
                 self.cpu.next_instruction();
             }
+        }
+
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+
+        if self.sound_timer > 0 {
+            self.sound_timer -= 1;
         }
     }
 
